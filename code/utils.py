@@ -17,20 +17,6 @@ from matplotlib import gridspec
 from torch import nn
 from torch.nn import init
 
-mnist_train = torchvision.datasets.MNIST(
-    root='../data/',
-    download=True,
-    train=True,
-    transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
-)
-
-mnist_test = torchvision.datasets.MNIST(
-    root='../data/',
-    download=True,
-    train=False,
-    transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
-)
-
 dtype = torch.float
 if torch.cuda.is_available():
     device = torch.device('cuda:0')
@@ -40,17 +26,31 @@ else:
 print('using device:', device)
 
 
-def get_train_loader(batch_size=128):
+def get_train_loader(args):
+    mnist_train = torchvision.datasets.MNIST(
+        root=os.path.join(args['--base-path'], 'data'),
+        download=True,
+        train=True,
+        transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
+    )
+
     return torch.utils.data.DataLoader(mnist_train,
-                                       batch_size=batch_size,
+                                       batch_size=args['--batch-size'],
                                        shuffle=True,
                                        drop_last=True,
                                        num_workers=2)
 
 
-def get_test_loader(batch_size=128):
+def get_test_loader(args):
+    mnist_test = torchvision.datasets.MNIST(
+        root=os.path.join(args['--base-path'], 'data'),
+        download=True,
+        train=False,
+        transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
+    )
+
     return torch.utils.data.DataLoader(mnist_test,
-                                       batch_size=batch_size,
+                                       batch_size=args['--batch-size'],
                                        shuffle=True,
                                        drop_last=True,
                                        num_workers=2)

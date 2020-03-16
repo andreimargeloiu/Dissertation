@@ -45,7 +45,7 @@ def train_mnist(args, config):
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     for epoch in range(args['--epochs']):
-        train_loader = get_train_loader(batch_size=args['--batch-size'])
+        train_loader = get_train_loader(args)
 
         for batch_idx, (data, target) in enumerate(train_loader):
             data, target = data.to(config.device), target.to(config.device)
@@ -70,7 +70,7 @@ def test(args, model, config):
     model.eval()
 
     with torch.no_grad():
-        test_loader = get_test_loader(batch_size=args['--batch-size'])
+        test_loader = get_test_loader(args)
 
         for data, target in test_loader:
             data, target = data.to(config.device), target.to(config.device)
