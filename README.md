@@ -11,4 +11,4 @@ This project encapsulates all code and experiments done for my Dissertation in t
 Save current run package configuration in `requirements.txt`
 ```
 pip freeze --local | grep -v myapp > requirements.txt
-``
+```
