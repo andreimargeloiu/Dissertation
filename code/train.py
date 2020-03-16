@@ -41,7 +41,7 @@ def run(args):
 def train_mnist(args, config):
     config.logger.info("Training MNIST classifier.")
 
-    model = MnistClassifier()
+    model = MnistClassifier().to(config.device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     for epoch in range(args['--epochs']):
