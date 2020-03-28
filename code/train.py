@@ -49,6 +49,8 @@ def run(args):
 
     initialize(args, seed=0)
 
+
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     OUT_DIR = path.join(args['--base-path'], 'logs')
     store = Store(OUT_DIR)
 
@@ -59,10 +61,10 @@ def run(args):
         train_dl = get_mnist_dl(args, train=True)
         valid_dl = get_mnist_dl(args, train=False)
 
-        train_model(args, model, optim, train_dl, valid_dl, store)
+        train_model(args, model, optim, train_dl, valid_dl, store, device)
 
 
-def train_model(args, model, optim, train_dl: DataLoader, valid_dl: DataLoader, store: Store, attack=None, ratio: int = 0):
+def train_model(args, model, optim, train_dl: DataLoader, valid_dl: DataLoader, store: Store, device, attack=None, ratio: int = 0):
     """
     Generic training routine, which is flexible to allow both standard and adversarial training.
     """
@@ -79,13 +81,15 @@ def train_model(args, model, optim, train_dl: DataLoader, valid_dl: DataLoader, 
 
     # store[consts.ARGS_TABLE].append_row(args_info)
 
+    model.to(device)
+
     for epoch in range(args['--epochs']):
         # Train for one epoch
-        train_acc, train_loss = _internal_loop(args, True, model, optim, train_dl, epoch, store)
+        train_acc, train_loss = _internal_loop(args, True, model, optim, train_dl, epoch, store, device)
 
         # Evaluate on validation
         with torch.no_grad():
-            valid_acc, valid_loss = _internal_loop(args, False, model, None, valid_dl, epoch, store)
+            valid_acc, valid_loss = _internal_loop(args, False, model, None, valid_dl, epoch, store, device)
 
         # Log
         log_info = {
@@ -103,7 +107,7 @@ def train_model(args, model, optim, train_dl: DataLoader, valid_dl: DataLoader, 
     return model
 
 
-def _internal_loop(args, is_train, model, optim, loader: DataLoader, epoch, store: Store):
+def _internal_loop(args, is_train, model, optim, loader: DataLoader, epoch, store: Store, device):
     """
     *Internal function used by train_model or eval_model*
 
@@ -130,6 +134,7 @@ def _internal_loop(args, is_train, model, optim, loader: DataLoader, epoch, stor
 
     iterator = tqdm(iter(loader), total=len(loader))
     for i, (xb, yb) in enumerate(iterator):
+        xb, yb = xb.to(device), yb.to(device)
         y_hat = model(xb)  # (batch_size, num_classes)
         loss = criteria(y_hat, yb)  # (tensor of one value)
 
@@ -137,7 +142,7 @@ def _internal_loop(args, is_train, model, optim, loader: DataLoader, epoch, stor
         pred_class = y_hat.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
         acc = pred_class.eq(yb.view_as(pred_class)).sum().item()
 
-        losses.update(loss / y_hat.shape[0])
+        losses.update(loss.item() / y_hat.shape[0])
         accuracy.update(acc / y_hat.shape[0])
 
         # Backward pass
