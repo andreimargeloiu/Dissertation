@@ -3,8 +3,9 @@ import os
 
 import torch
 import torch.nn as nn
-from torch.nn import Conv2d, LeakyReLU, Dropout, MaxPool2d, Linear, Softmax, LogSoftmax
+from torch.nn import Conv2d, LeakyReLU, Dropout, MaxPool2d, Linear
 from torch.nn.modules import Flatten
+
 from utils import initialize_weights
 
 
@@ -44,7 +45,6 @@ class MnistClassifier(nn.Module):
             Dropout(0.2),
 
             Linear(128, 10),
-            LogSoftmax()
         )
 
         self.apply(initialize_weights)

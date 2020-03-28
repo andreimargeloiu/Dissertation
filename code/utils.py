@@ -17,20 +17,33 @@ from matplotlib import gridspec
 from torch import nn
 from torch.nn import init
 
-dtype = torch.float
-if torch.cuda.is_available():
-    device = torch.device('cuda:0')
-else:
-    device = torch.device('cpu')
 
-print('using device:', device)
+class AverageMeter(object):
+    """
+    Computes and stores the average and current value
+    from https://github.com/MadryLab/robustness/blob/1da08f4c4e940ec4897c0950e0803dd71c7967ae/robustness/tools/helpers.py
+    """
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
 
-def get_train_loader(args):
+def get_mnist_dl(args, train=True):
     mnist_train = torchvision.datasets.MNIST(
         root=os.path.join(args['--base-path'], 'data'),
         download=True,
-        train=True,
+        train=train,
         transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
     )
 
@@ -38,22 +51,7 @@ def get_train_loader(args):
                                        batch_size=args['--batch-size'],
                                        shuffle=True,
                                        drop_last=True,
-                                       num_workers=2)
-
-
-def get_test_loader(args):
-    mnist_test = torchvision.datasets.MNIST(
-        root=os.path.join(args['--base-path'], 'data'),
-        download=True,
-        train=False,
-        transform=torchvision.transforms.ToTensor()  # The data is stored in numpy. Transform it to PyTorch tensors.
-    )
-
-    return torch.utils.data.DataLoader(mnist_test,
-                                       batch_size=args['--batch-size'],
-                                       shuffle=True,
-                                       drop_last=True,
-                                       num_workers=2)
+                                       num_workers=4)
 
 
 ## Utilities
@@ -134,21 +132,7 @@ def initialize_weights(param):
 
 
 ####### Configuration #######
-def fix_random_seed(seed=0):
-    """
-      Fix random seed to get a deterministic output
-      Inputs:
-      - seed_no: seed number to be fixed
-    """
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-
-
 def initialize_logger(args):
-    print(args)
-
     logging.basicConfig(format='%(asctime)s %(name)-12s %(message)s',
                         level=logging.DEBUG,
                         datefmt='%d-%m %H:%M:%S',
@@ -168,17 +152,16 @@ def initialize_logger(args):
     logging.debug("args: " + json.dumps(args, ensure_ascii=True, indent=2, sort_keys=True))
 
 
-class Config:
+def fix_random_seed(seed=0):
     """
-    Class to store configuration, such as device, dtype etc
+      Fix random seed to get a deterministic output
+      Inputs:
+      - seed_no: seed number to be fixed
     """
-
-    def __init__(self, device, seed, logger):
-        self.device = device
-        self.seed = seed
-        self.logger = logger
-
-        self.others = dict()  # Other config
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    random.seed(seed)
+    np.random.seed(seed)
 
 
 def initialize(args, seed=0):
@@ -191,23 +174,7 @@ def initialize(args, seed=0):
     initialize_logger(args)
 
     if torch.cuda.is_available():
-        device = torch.device('cuda:0')
+        torch.cuda.set_device('cuda:0')
+        print('using GPU')
     else:
-        device = torch.device('cpu')
-
-    config = Config(device, seed, logging.getLogger(''))
-    return config
-
-
-if __name__ == '__main__':
-    img, lbl = mnist_train[0]
-    # (1 channel * 28 width * 28 height)
-    print('Shape of a single mnist image:', img.shape)
-    plt.imshow(img[0], cmap='gray')
-    plt.colorbar()
-    plt.show()
-
-    imgs, lbls = next(get_train_loader())
-    x = torchvision.utils.make_grid(imgs, nrow=3)
-    plt.imshow(x.numpy().transpose((1, 2, 0)))
-    plt.show()
+        print('using CPU')

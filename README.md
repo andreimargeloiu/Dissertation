@@ -12,3 +12,7 @@ Save current run package configuration in `requirements.txt`
 ```
 pip freeze --local | grep -v myapp > requirements.txt
 ```
+
+```
+python3 -m cox.tensorboard_view --logdir .logs --format-str
+```
